@@ -240,7 +240,6 @@ The API validates the following claims in the JWT token:
 |--------|----------|------------|-------------|
 | Authorization | Yes | All endpoints | `Bearer <token>` — obtained from the token endpoint (see Authentication section above) |
 | X-Cid | Yes | All endpoints | Your company identifier (UUID). Scopes all data to your company. |
-| X-Idempotency-Key | Yes | POST /orders, POST /orders/import, POST /orders/{orderId}/documents | A unique key (e.g., UUID) to prevent duplicate operations on retry. If the same key is sent again, the server returns the cached response from the original request. |
 
 ---
 
