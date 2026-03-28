@@ -592,7 +592,7 @@ Cancel a shipment.
 
 ### #9 — DELETE /v1/shipments/{shipmentId}
 
-Soft-delete a shipment. The shipment will no longer appear in list queries.
+Delete a shipment. The shipment will no longer appear in list queries.
 
 - Permission: Shipments.Delete
 - Rate Limit: Write policy
@@ -938,7 +938,7 @@ Delete (hide) a shipment document.
 | StockedIn | **Completed** | Operator | AdminApi |
 | Review, Confirmed | **Canceled** | Merchant | `POST /v1/shipments/{id}/cancel` |
 | Rejected, Canceled | **New** | Merchant | `POST /v1/shipments/{id}/renew` |
-| New, Canceled, Rejected | **Soft-Deleted** | Merchant | `DELETE /v1/shipments/{id}` |
+| New, Canceled, Rejected | **Deleted** | Merchant | `DELETE /v1/shipments/{id}` |
 
 ### Shipment Lifecycle (Quick View)
 
@@ -996,5 +996,5 @@ Delete (hide) a shipment document.
     Cancel ---------+-------> (8) Canceled
     (from Review, Confirmed)
 
-    Delete (from New, Canceled, Rejected) --> Soft-Deleted
+    Delete (from New, Canceled, Rejected) --> Deleted
 ```
