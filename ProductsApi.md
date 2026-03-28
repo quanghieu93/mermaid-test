@@ -1,12 +1,11 @@
-﻿# PublicApi — ProductsController API Documentation
+﻿# Product Apis Documentation
 
-> Controller: GlobalSales.PublicApi.Controllers.ProductsController
 > Base Route: /v{version:apiVersion}/products
 > API Version: 1.0
 > Authentication: OAuth2 Bearer Token (required on all endpoints)
 > Authorization: Client credentials with scope "public-api" + resource permissions
 > Rate Limiting: All endpoints are rate-limited (read/write/import policies)
-> Company Scope: The caller's company is resolved from the authenticated token. There is no need to pass a company ID — all data is automatically scoped to the authenticated company.
+> Company Scope: The caller's company is resolved from the authenticated token.
 
 ---
 
