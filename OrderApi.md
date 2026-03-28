@@ -127,9 +127,6 @@ No body. Authenticated but lacks required permission or scope.
 ### 429 Too Many Requests
 Rate limit exceeded. Retry after the duration specified in the `Retry-After` header.
 
-### 409 Conflict — Duplicate Request (Idempotency)
-Returned when a request with the same `X-Idempotency-Key` has already been processed. The server returns the cached response from the original request.
-
 ### 422 Unprocessable Entity — Validation Error (errorCode: 01 or 98)
 
 ```json
@@ -576,7 +573,6 @@ Create a new order.
 
 - Permission: Orders.Create
 - Rate Limit: Write policy
-- Required Header: `X-Idempotency-Key` (UUID — prevents duplicate creation on retry)
 
 **Request Body Fields:**
 
@@ -666,7 +662,7 @@ data contains the full order detail
 }
 ```
 
-**Possible Errors:** 401, 403, 400 (unsupported OrderType, domain error), 409 (duplicate idempotency key), 422 (validation/DB), 429
+**Possible Errors:** 401, 403, 400 (unsupported OrderType, domain error), 422 (validation/DB), 429
 
 ---
 
@@ -858,7 +854,6 @@ Import orders from an Excel file.
 - Permission: Orders.Create
 - Rate Limit: Import policy
 - Content-Type: multipart/form-data
-- Required Header: `X-Idempotency-Key` (UUID)
 
 **Form Fields:**
 
@@ -880,7 +875,7 @@ Import orders from an Excel file.
 }
 ```
 
-**Possible Errors:** 401, 403, 400 (file type/domain), 409 (duplicate idempotency key), 422, 429
+**Possible Errors:** 401, 403, 400 (file type/domain), 422, 429
 
 ---
 
@@ -1204,7 +1199,6 @@ Upload documents for an order.
 - Permission: Orders.Create
 - Rate Limit: Import policy
 - Content-Type: multipart/form-data
-- Required Header: `X-Idempotency-Key` (UUID)
 
 **Route Parameters:**
 
@@ -1222,7 +1216,7 @@ Upload documents for an order.
 
 **Response — 202 Accepted:** Empty data object.
 
-**Possible Errors:** 401, 403, 400, 404, 409 (duplicate idempotency key), 429
+**Possible Errors:** 401, 403, 400, 404, 429
 
 ---
 
