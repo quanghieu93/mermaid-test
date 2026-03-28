@@ -121,7 +121,7 @@ When an order transitions to a new status, domain events are raised. These are p
 
 ```mermaid
 flowchart LR
-    subgraph DomainEvents["Action"]
+    subgraph Action
         E1["OrderCreated"]
         E2["OrderRequested"]
         E3["OrderRejected"]
@@ -136,7 +136,7 @@ flowchart LR
         E12["OrderStockedOut"]
     end
 
-    subgraph Bus["Sub"]
+    subgraph Services
         S1["order-notification-sub"]
         S2["order-auto-confirm-sub"]
         S3["order-wms-sync-sub"]
@@ -145,7 +145,7 @@ flowchart LR
         S6["order-store-platform-sub"]
     end
 
-    subgraph Notifications["Notification Dispatcher<br/>(consumers)"]
+    subgraph Notifications
         N1["NotifyOrderRequested"]
         N2["NotifyOrderConfirmed"]
         N3["NotifyOrderRejected"]
