@@ -1,14 +1,13 @@
 [PublicApi-OrdersController-Documentation.md](https://github.com/user-attachments/files/26318230/PublicApi-OrdersController-Documentation.md)
-# PublicApi — OrdersController API Documentation
+# Order Apis Documentation
 
 > Generated: March 24, 2026
-> Controller: GlobalSales.PublicApi.Controllers.OrdersController
 > Base Route: /v{version:apiVersion}/orders
 > API Version: 1.0
 > Authentication: OAuth2 Bearer Token (required on all endpoints)
 > Authorization: Client credentials with scope "public-api" + resource permissions
 > Rate Limiting: All endpoints are rate-limited (read/write/import policies)
-> Company Scope: The caller's company is resolved from the authenticated token. There is no need to pass a company ID — all data is automatically scoped to the authenticated company.
+> Company Scope: The caller's company is resolved from the authenticated token.
 
 ---
 
