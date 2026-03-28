@@ -271,7 +271,6 @@ Get a paginated list of products.
 | isValid | boolean | No | Filter by validation status |
 | isDeleted | boolean | No | Include deleted products |
 
-> **Note:** Do **not** include `companyId` in the query parameters. It is automatically set from your authenticated context.
 
 **Request Body:** None
 
@@ -351,8 +350,6 @@ Create a new product.
 | declaredValue | string | Yes | Declared customs value |
 
 **Response — 201 Created:**
-
-data contains the full product detail object. A `Location` header points to the new product.
 
 **Sample Request:**
 
