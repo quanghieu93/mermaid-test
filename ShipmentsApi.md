@@ -109,9 +109,6 @@ No body. Authenticated but lacks required permission or scope.
 ### 429 Too Many Requests
 Rate limit exceeded. Retry after the duration specified in the `Retry-After` header.
 
-### 409 Conflict — Duplicate Request (Idempotency)
-Returned when a request with the same `X-Idempotency-Key` has already been processed. The server returns the cached response from the original request.
-
 ### 422 Unprocessable Entity — Validation Error (errorCode: 01 or 98)
 
 ```json
@@ -447,7 +444,6 @@ Create a new shipment.
 
 - Permission: Shipments.Create
 - Rate Limit: Write policy
-- Required Header: `X-Idempotency-Key` (UUID)
 
 **Request Body Fields:**
 
@@ -489,7 +485,7 @@ Create a new shipment.
 
 data contains the full shipment detail (same structure as GET /v1/shipments/{shipmentId}).
 
-**Possible Errors:** 401, 403, 400, 409 (duplicate idempotency key), 422, 429
+**Possible Errors:** 401, 403, 400, 422, 429
 
 ---
 
@@ -888,7 +884,6 @@ Upload documents for a shipment.
 - Permission: Shipments.Create or Shipments.Modify
 - Rate Limit: Import policy
 - Content-Type: multipart/form-data
-- Required Header: `X-Idempotency-Key` (UUID)
 
 **Route Parameters:**
 
@@ -906,7 +901,7 @@ Upload documents for a shipment.
 
 **Response — 202 Accepted:** Empty data object.
 
-**Possible Errors:** 401, 403, 400, 404, 409 (duplicate idempotency key), 429
+**Possible Errors:** 401, 403, 400, 404, 429
 
 ---
 
