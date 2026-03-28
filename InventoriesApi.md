@@ -286,7 +286,6 @@ Get a paginated list of inventories.
 | showEmpty | boolean | No | Include products with zero inventory. Default: false |
 | orderBy | string | No | Sort field |
 
-> **Note:** Do **not** include `companyId` in the query parameters. It is automatically set from your authenticated context.
 
 **Request Body:** None
 
