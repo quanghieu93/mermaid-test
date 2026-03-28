@@ -242,7 +242,7 @@ X-Cid: 3fa85f64-5717-4562-b3fc-2c963f66afa6
 **Sample Request (cURL):**
 
 ```sh
-curl -X GET https://api.example.com/v1/orders \
+curl -X GET https://api.example.com/v1/shipments \
   -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
   -H "X-Cid: 3fa85f64-5717-4562-b3fc-2c963f66afa6"
 ```
