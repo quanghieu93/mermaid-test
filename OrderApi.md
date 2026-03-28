@@ -618,7 +618,7 @@ Create a new order.
 
 **Response — 201 Created:**
 
-data contains the full order detail (same structure as GET /v1/orders/{orderId}). The `orderId` in the response is your reference — store this in your system for all subsequent operations.
+data contains the full order detail
 
 **Sample Request (ECommerce):**
 
