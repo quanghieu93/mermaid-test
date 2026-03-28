@@ -96,7 +96,7 @@
    v
 +--+------------+          DELETE /orders/{id}       +--------------+
 |               | ----(from New or Canceled)-------> |              |
-| (255) Canceled|                                    | Soft-Deleted |
+| (255) Canceled|                                    |    Deleted   |
 |               |                                    |              |
 +---------------+                                    +--------------+
 
@@ -134,52 +134,9 @@
 | Confirmed, WarehouseProcessing | **Holded** | WMS / Operator | WMS hold callback |
 | Any (except Completed) | **Abnormal** | System | WMS sync failure, processing error |
 | Requested, Confirmed, Rejected, WarehouseProcessing | **Canceled** | Merchant / Operator | `POST /v1/orders/{id}/cancel` |
-| New, Canceled | **Soft-Deleted** | Merchant | `DELETE /v1/orders/{id}` |
+| New, Canceled | **Deleted** | Merchant | `DELETE /v1/orders/{id}` |
 
 ---
-
-## Events and Notifications per Status Change
-
-When an order transitions to a new status, domain events are raised. These are published to Azure Service Bus (`gs.order.events` topic) and dispatched as notifications (which can trigger webhooks, emails, or in-app alerts).
-
-### Event Pipeline
-
-```
-+------------------+       +-------------------------+       +---------------------------+
-|  Order Entity    |       |  Azure Service Bus      |       |  Notification             |
-|  (Domain Events) | ----> |  Topic: gs.order.events | ----> |  Dispatcher (Consumers)   |
-+------------------+       +-------------------------+       +---------------------------+
-                                      |
-                            Subscriptions:
-                            +-- order-notification-sub
-                            +-- order-auto-confirm-sub
-                            +-- order-wms-sync-sub
-                            +-- order-upload-label-sub
-                            +-- order-make-label-sub
-                            +-- order-store-platform-sub
-```
-
-### Event Details
-
-| Status Change | Domain Event | Integration Event(s) | Notification Dispatched |
-|--------------|-------------|---------------------|------------------------|
-| to New | `OrderCreated` | — | — |
-| to Requested | `OrderRequested` | `OrderRequestedNotification` (manual) / `ConfirmOrderRequest` (auto) | `NotifyOrderRequested` |
-| to Rejected | `OrderRejected` | `OrderRejectedNotification` | `NotifyOrderRejected` |
-| to Confirmed | `OrderConfirmed` | `OrderConfirmedNotification` / `OrderSyncToWmsRequested` | `NotifyOrderConfirmed` |
-| WMS sync OK | `OrderToWMSSucceed` | `OrderUploadLabelToWmsRequested` or `OrderMakeLabelRequested` | `NotifyOrderSyncWMSSuccess` |
-| WMS sync fail | `OrderToWMSFailed` | `OrderToWMSFailedNotification` | `NotifyOrderSyncWMSFailed` |
-| to Shipped | `OrderShipped` | `OrderShippedNotification` | `NotifyOrderShipped` |
-| to Delivered | `OrderDelivered` | — | — |
-| to Completed | `OrderCompleted` | `OrderCompletedNotification` / `OrderCompleteToStore` | `NotifyOrderCompleted` |
-| to Canceled | `OrderCancelled` | `OrderCancelledNotification` | `NotifyOrderCancelled` |
-| to Abnormal | `OrderAbnormal` | `OrderAbnormalNotification` | `NotifyOrderAnomaly` |
-| to Holded | `OrderHolded` | — | — |
-| Info updated | `OrderInfoChanged` | `OrderInfoChangedNotification` | `NotifyOrderChanged` |
-| Stocked out | `OrderStockedOut` | `OrderStockedOutNotification` | `NotifyOrderStockedOut` |
-| Label make fail | `MakeWmsShippingLabelFailed` | `OrderMakeLabelFailedNotification` | `NotifyOrderMakeLabelFailed` |
-| Label sync fail | `OrderSyncShippingLabelFailed` | `OrderLabelSyncFailedNotification` | `NotifyOrderLabelSyncFailed` |
-
 ---
 
 ## Merchant (Public API) Actions Summary
