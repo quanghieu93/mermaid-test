@@ -174,8 +174,8 @@ flowchart LR
     E4 --> S5
     E7 --> S6
 
-    style DomainEvents fill:#e3f2fd,stroke:#1565c0
-    style Bus fill:#fff3e0,stroke:#e65100
+    style Action fill:#e3f2fd,stroke:#1565c0
+    style Services fill:#fff3e0,stroke:#e65100
     style Notifications fill:#e8f5e9,stroke:#2e7d32
 ```
 
