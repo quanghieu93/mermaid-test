@@ -173,7 +173,7 @@ These are additional actions available to operators through the Admin API:
 | Cancel | `POST /orders/{id}/cancel` | Requested, Confirmed, Rejected, WarehouseProcessing |
 | Sync to WMS | `POST /orders/{id}/sync-wms` | Confirmed |
 | Make Shipping Label | `POST /orders/{id}/make-shipping-label` | ECommerce + Warehouse vendor + WMS synced |
-| Change Shipping | `POST /orders/{id}/shipping` | New ? Completed |
+| Change Shipping | `POST /orders/{id}/shipping` | New -> Completed |
 
 ---
 
