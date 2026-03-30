@@ -1,9 +1,5 @@
 # Order Workflow
 
-> This document describes the complete order lifecycle — from creation through fulfillment — including API actions, status transitions, and events/notifications fired at each step.
-
----
-
 ## Order Status Overview
 
 | Status | Value | Description |
@@ -26,57 +22,56 @@
 
 ```mermaid
 flowchart TD
-    Start([🛒 Customer / API])
+    Start([🧑‍💼 Customer / API])
 
-  %% ── Creation ──
+  %% -- Creation --
     Start -->|"POST /orders <br> POST /orders/import"| New["📝 <b>New</b> <br> <i>Status = 1</i>"]
 
-    %% ── Editing (while New) ──
+    %% -- Editing (while New) --
     New -.->|"PUT /orders/{id}<br>POST /lines · PUT /lines<br>DELETE /lines <br> POST /documents"| New
 
-    %% ── Submit ──
-    New -->|"POST /orders/{id}/request<br>POST /orders/request-batch"| Requested["📨 <b>Requested</b><br><i>Status = 2</i>"]
+    %% -- Submit --
+    New -->|"POST /orders/{id}/request<br>POST /orders/request-batch"| Requested[" <b>Requested</b><br><i>Status = 2</i>"]
 
-    %% ── Operator Review ──
+    %% -- Operator Review --
     Requested -->|"Auto-confirm<br>(if enabled)"| Confirmed
-    Requested -->|"Operator confirms<br>(AdminApi)"| Confirmed["✅ <b>Confirmed</b><br><i>Status = 4</i>"]
+    Requested -->|"Operator confirms<br>(AdminApi)"| Confirmed[" ✅ <b>Confirmed</b><br><i>Status = 4</i>"]
     Requested -->|"Operator rejects<br>(AdminApi)"| Rejected["❌ <b>Rejected</b><br><i>Status = 3</i>"]
 
-    %% ── Rejected → back to New ──
+    %% -- Rejected ? back to New --
     Rejected -->|"Operator moves<br>back to New<br>(AdminApi)"| New
 
-    %% ── WMS & Warehouse ──
-    Confirmed -->|"Auto: Sync to WMS<br>+ Make/Upload Label"| WarehouseProcessing["📦 <b>Warehouse<br>Processing</b><br><i>Status = 5</i>"]
+    %% -- WMS & Warehouse --
+    Confirmed -->|"Auto: Sync to WMS<br>+ Make/Upload Label"| WarehouseProcessing[" <b>Warehouse<br>Processing</b><br><i>Status = 5</i>"]
 
-    %% ── Abnormal (from any processing state) ──
+    %% -- Abnormal (from any processing state) --
     Confirmed -->|"WMS sync fails<br>or error"| Abnormal["⚠️ <b>Abnormal</b><br><i>Status = 9</i>"]
     WarehouseProcessing -->|"Processing error"| Abnormal
 
-    %% ── Hold ──
+    %% -- Hold --
     Confirmed -->|"Hold by WMS<br>or operator"| Holded["⏸️ <b>Holded</b><br><i>Status = 100</i>"]
     WarehouseProcessing -->|"Hold by WMS<br>or operator"| Holded
 
-    %% ── Shipping ──
+    %% -- Shipping --
     WarehouseProcessing -->|"Goods shipped<br>(WMS callback<br>or AdminApi)"| Shipped["🚚 <b>Shipped</b><br><i>Status = 7</i>"]
+    %% -- Delivery --
+    Shipped -->|"Carrier confirms<br>delivery<br>(AdminApi)"| Delivered["📦 <b>Delivered</b><br><i>Status = 10</i>"]
 
-    %% ── Delivery ──
-    Shipped -->|"Carrier confirms<br>delivery<br>(AdminApi)"| Delivered["📬 <b>Delivered</b><br><i>Status = 10</i>"]
-
-    %% ── Completion ──
-    Shipped -->|"Operator completes<br>(AdminApi)"| Completed["🏁 <b>Completed</b><br><i>Status = 8</i>"]
+    %% -- Completion --
+    Shipped -->|"Operator completes<br>(AdminApi)"| Completed["✅ <b>Completed</b><br><i>Status = 8</i>"]
     Delivered -->|"Operator completes<br>(AdminApi)"| Completed
 
-    %% ── Cancellation (from multiple states) ──
-    Requested -->|"POST /orders/{id}/cancel"| Canceled["🚫 <b>Canceled</b><br><i>Status = 255</i>"]
+    %% -- Cancellation (from multiple states) --
+    Requested -->|"POST /orders/{id}/cancel"| Canceled["❌ <b>Canceled</b><br><i>Status = 255</i>"]
     Confirmed -->|"POST /orders/{id}/cancel"| Canceled
     Rejected -->|"POST /orders/{id}/cancel"| Canceled
     WarehouseProcessing -->|"POST /orders/{id}/cancel"| Canceled
 
-    %% ── Deletion ──
-    New -->|"DELETE /orders/{id}"| Deleted(["🗑️ Deleted"])
+    %% -- Deletion --
+    New -->|"DELETE /orders/{id}"| Deleted(["🗑️ <b>Deleted</b>"])
     Canceled -->|"DELETE /orders/{id}"| Deleted
 
-    %% ── Styling ──
+    %% -- Styling --
     style New fill:#e3f2fd,stroke:#1565c0,color:#000
     style Requested fill:#fff3e0,stroke:#e65100,color:#000
     style Rejected fill:#ffebee,stroke:#c62828,color:#000
@@ -95,7 +90,7 @@ flowchart TD
 
 ## Status Transition Rules
 
-The table below shows which statuses an order can transition **from → to**, and who triggers it.
+The table below shows which statuses an order can transition **from ? to**, and who triggers it.
 
 | From | To | Triggered By | API / Mechanism |
 |------|----|-------------|-----------------|
@@ -115,90 +110,24 @@ The table below shows which statuses an order can transition **from → to**, an
 
 ---
 
-## Events & Notifications per Status Change
+## Notifications per Status Change
 
-When an order transitions to a new status, domain events are raised. These are published to Azure Service Bus and dispatched as notifications (which can trigger webhooks, emails, or in-app alerts).
+When an order transitions to a new status, the system may send notifications to the merchant (via webhooks, emails, or in-app alerts).
 
-```mermaid
-flowchart LR
-    subgraph Action
-        E1["OrderCreated"]
-        E2["OrderRequested"]
-        E3["OrderRejected"]
-        E4["OrderConfirmed"]
-        E5["OrderShipped"]
-        E6["OrderDelivered"]
-        E7["OrderCompleted"]
-        E8["OrderCancelled"]
-        E9["OrderAbnormal"]
-        E10["OrderHolded"]
-        E11["OrderInfoChanged"]
-        E12["OrderStockedOut"]
-    end
-
-    subgraph Services
-        S1["order-notification-sub"]
-        S2["order-auto-confirm-sub"]
-        S3["order-wms-sync-sub"]
-        S4["order-upload-label-sub"]
-        S5["order-make-label-sub"]
-        S6["order-store-platform-sub"]
-    end
-
-    subgraph Notifications
-        N1["NotifyOrderRequested"]
-        N2["NotifyOrderConfirmed"]
-        N3["NotifyOrderRejected"]
-        N4["NotifyOrderShipped"]
-        N5["NotifyOrderStockedOut"]
-        N6["NotifyOrderCompleted"]
-        N7["NotifyOrderCancelled"]
-        N8["NotifyOrderAnomaly"]
-        N9["NotifyOrderChanged"]
-        N10["NotifyOrderSyncWMS ✓/✗"]
-    end
-
-    E2 --> S1 --> N1
-    E4 --> S1 --> N2
-    E3 --> S1 --> N3
-    E5 --> S1 --> N4
-    E12 --> S1 --> N5
-    E7 --> S1 --> N6
-    E8 --> S1 --> N7
-    E9 --> S1 --> N8
-    E11 --> S1 --> N9
-
-    E2 -->|"Auto mode"| S2
-    E4 --> S3
-    E4 --> S4
-    E4 --> S5
-    E7 --> S6
-
-    style Action fill:#e3f2fd,stroke:#1565c0
-    style Services fill:#fff3e0,stroke:#e65100
-    style Notifications fill:#e8f5e9,stroke:#2e7d32
-```
-
-### Event Details
-
-| Status Change | Domain Event | Integration Event(s) | Notification Dispatched |
-|--------------|-------------|---------------------|------------------------|
-| → New | `OrderCreated` | — | — |
-| → Requested | `OrderRequested` | `OrderRequestedNotification` (manual mode) · `ConfirmOrderRequest` (auto mode) | `NotifyOrderRequested` |
-| → Rejected | `OrderRejected` | `OrderRejectedNotification` | `NotifyOrderRejected` |
-| → Confirmed | `OrderConfirmed` | `OrderConfirmedNotification` · `OrderSyncToWmsRequested` | `NotifyOrderConfirmed` |
-| WMS sync success | `OrderToWMSSucceed` | `OrderUploadLabelToWmsRequested` or `OrderMakeLabelRequested` | `NotifyOrderSyncWMSSuccess` |
-| WMS sync failed | `OrderToWMSFailed` | `OrderToWMSFailedNotification` | `NotifyOrderSyncWMSFailed` |
-| → Shipped | `OrderShipped` | `OrderShippedNotification` | `NotifyOrderShipped` |
-| → Delivered | `OrderDelivered` | — | — |
-| → Completed | `OrderCompleted` | `OrderCompletedNotification` · `OrderCompleteToStore` | `NotifyOrderCompleted` |
-| → Canceled | `OrderCancelled` | `OrderCancelledNotification` | `NotifyOrderCancelled` |
-| → Abnormal | `OrderAbnormal` | `OrderAbnormalNotification` | `NotifyOrderAnomaly` |
-| → Holded | `OrderHolded` | — | — |
-| Info updated | `OrderInfoChanged` | `OrderInfoChangedNotification` | `NotifyOrderChanged` |
-| Stocked out | `OrderStockedOut` | `OrderStockedOutNotification` | `NotifyOrderStockedOut` |
-| Label make failed | `MakeWmsShippingLabelFailed` | `OrderMakeLabelFailedNotification` | `NotifyOrderMakeLabelFailed` |
-| Label sync failed | `OrderSyncShippingLabelFailed` | `OrderLabelSyncFailedNotification` | `NotifyOrderLabelSyncFailed` |
+| Status Change | Notification Sent to Merchant |
+|--------------|-------------------------------|
+|  New | — |
+|  Requested | Order submitted for review |
+|  Rejected | Order rejected (with reason) |
+|  Confirmed | Order confirmed and being prepared |
+|  WarehouseProcessing | — |
+|  Shipped | Order shipped |
+|  Delivered | — |
+|  Completed | Order completed |
+|  Canceled | Order cancelled (with reason) |
+|  Abnormal | Order anomaly detected (with reason) |
+|  Holded | — |
+| Info updated | Order information changed |
 
 ---
 
@@ -208,16 +137,16 @@ These are the actions available to merchants through the Public API (`/v1/orders
 
 ```mermaid
 flowchart TD
-    subgraph MerchantActions["🧑‍💼 Merchant Actions via Public API"]
+    subgraph MerchantActions[" Merchant Actions via Public API"]
         direction TB
-        A1["<b>Create Order</b><br>POST /v1/orders<br><i>→ Status: New</i>"]
-        A2["<b>Import Orders</b><br>POST /v1/orders/import<br><i>→ Status: New</i>"]
+        A1["<b>Create Order</b><br>POST /v1/orders<br><i> Status: New</i>"]
+        A2["<b>Import Orders</b><br>POST /v1/orders/import<br><i> Status: New</i>"]
         A3["<b>Update Order Info</b><br>PUT /v1/orders/{id}<br><i>Only when: New</i>"]
         A4["<b>Manage Order Lines</b><br>POST/PUT/DELETE .../lines<br><i>Only when: New</i>"]
         A5["<b>Manage Documents</b><br>POST/DELETE .../documents<br><i>Any status</i>"]
-        A6["<b>Submit Order</b><br>POST /v1/orders/{id}/request<br><i>New → Requested</i>"]
-        A7["<b>Batch Submit</b><br>POST /v1/orders/request-batch<br><i>New → Requested</i>"]
-        A8["<b>Cancel Order</b><br>POST /v1/orders/{id}/cancel<br><i>→ Status: Canceled</i>"]
+        A6["<b>Submit Order</b><br>POST /v1/orders/{id}/request<br><i>Requested</i>"]
+        A7["<b>Batch Submit</b><br>POST /v1/orders/request-batch<br><i>Requested</i>"]
+        A8["<b>Cancel Order</b><br>POST /v1/orders/{id}/cancel<br><i>? Status: Canceled</i>"]
         A9["<b>Delete Order</b><br>DELETE /v1/orders/{id}<br><i>Only when: New or Canceled</i>"]
         A10["<b>Query Orders</b><br>GET /v1/orders<br>GET /v1/orders/{id}<br>GET /v1/orders/count-status"]
     end
@@ -244,7 +173,7 @@ These are additional actions available to operators through the Admin API:
 | Cancel | `POST /orders/{id}/cancel` | Requested, Confirmed, Rejected, WarehouseProcessing |
 | Sync to WMS | `POST /orders/{id}/sync-wms` | Confirmed |
 | Make Shipping Label | `POST /orders/{id}/make-shipping-label` | ECommerce + Warehouse vendor + WMS synced |
-| Change Shipping | `POST /orders/{id}/shipping` | New → Completed |
+| Change Shipping | `POST /orders/{id}/shipping` | New ? Completed |
 
 ---
 
@@ -255,9 +184,6 @@ sequenceDiagram
     participant M as 🧑‍💼 Merchant<br/>(Public API)
     participant S as ⚙️ System
     participant O as 👤 Operator<br/>(Admin API)
-    participant WMS as 🏭 WMS
-    participant BUS as 📡 Service Bus
-    participant N as 🔔 Notifications
 
     M->>S: POST /v1/orders (ECommerce)
     S-->>M: 201 Created (status: New)
@@ -267,44 +193,31 @@ sequenceDiagram
 
     M->>S: POST /orders/{id}/request
     S-->>M: 202 Accepted (status: Requested)
-    S->>BUS: OrderRequested event
 
     alt Auto-Confirm enabled
-        BUS->>S: ConfirmOrderRequest
         S->>S: Auto-confirm order
     else Manual Confirm
-        BUS->>N: OrderRequestedNotification
-        N-->>O: 📧 "New order pending review"
+        S-->>O: 🔔 Notification: "New order pending review"
         O->>S: POST /orders/{id}/confirm
     end
 
-    S-->>S: Status → Confirmed
-    S->>BUS: OrderConfirmed event
-    BUS->>N: OrderConfirmedNotification
-    N-->>M: 📧 "Order confirmed"
-
-    BUS->>WMS: OrderSyncToWmsRequested
-    WMS-->>S: Sync success callback
-    S->>BUS: OrderToWMSSucceed
-    BUS->>WMS: Make/Upload shipping label
+    S-->>S: Status Confirmed
+    S-->>M: Notification: "Order confirmed"
+    S->>S: Sync to WMS + Make/Upload shipping label
 
     O->>S: POST /orders/{id}/stock-out-ordered
-    S-->>S: Status → WarehouseProcessing
+    S-->>S: Status WarehouseProcessing
 
-    WMS-->>S: Shipped callback (quantities)
-    S-->>S: Status → Shipped
-    S->>BUS: OrderShipped event
-    BUS->>N: OrderShippedNotification
-    N-->>M: 📧 "Order shipped"
+    S-->>S: Warehouse ships goods
+    S-->>S: Status Shipped
+    S-->>M: Notification: "Order shipped"
 
-    WMS-->>S: Delivery confirmation
-    S-->>S: Status → Delivered
+    S-->>S: Carrier confirms delivery
+    S-->>S: Status Delivered
 
     O->>S: POST /orders/{id}/complete
-    S-->>S: Status → Completed
-    S->>BUS: OrderCompleted event
-    BUS->>N: OrderCompletedNotification
-    N-->>M: 📧 "Order completed"
+    S-->>S: Status Completed
+    S-->>M: Notification: "Order completed"
 ```
 
 ---
@@ -315,18 +228,16 @@ sequenceDiagram
 sequenceDiagram
     participant M as 🧑‍💼 Merchant
     participant S as ⚙️ System
-    participant BUS as 📡 Service Bus
-    participant N as 🔔 Notifications
 
     M->>S: POST /v1/orders/{id}/cancel<br/>{ cancelReason: "..." }
 
     alt Order is cancellable (Requested/Confirmed/Rejected/WarehouseProcessing)
         S-->>M: 202 Accepted (status: Canceled)
-        S->>BUS: OrderCancelled event
-        BUS->>N: OrderCancelledNotification
+        S-->>M: Notification: "Order cancelled"
     else Order is NOT cancellable (New/Shipped/Completed/...)
         S-->>M: 400 Bad Request
     end
+
 ```
 
 ---
