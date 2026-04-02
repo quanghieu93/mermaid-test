@@ -139,7 +139,7 @@
 ---
 ---
 
-## Merchant (Public API) Actions Summary
+## Actions Summary
 
 These are the actions available to merchants through the Public API (`/v1/orders`):
 
