@@ -696,7 +696,7 @@ curl -X GET "https://api.example.com/v1/inventories/details?productId=f47a...&wa
 
 ### 5.5 Shipments
 
-Inbound shipments — send goods to the warehouse. Detailed API documentation will be provided in a subsequent update.
+Inbound shipments — send goods to the warehouse.
 
 **Enums:**
 
@@ -719,6 +719,158 @@ Inbound shipments — send goods to the warehouse. Detailed API documentation wi
 | POST | /v1/shipments/{shipmentId}/renew | Renew (from Rejected/Canceled) |
 | POST | /v1/shipments/{shipmentId}/cancel | Cancel |
 | DELETE | /v1/shipments/{shipmentId} | Delete |
+
+---
+
+#### GET /v1/shipments
+
+Get a paginated list of shipments.
+
+**Query Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| pageIndex | int | No | Default: 1 |
+| pageSize | int | No | Default: 20, Max: 100 |
+| warehouseId | UUID | No | Filter by warehouse |
+| productId | UUID | No | Filter by product in packings |
+| fromDate | date | No | Shipment date range start |
+| toDate | date | No | Shipment date range end |
+| status | int[] | No | Filter by status. Pass multiple: `?status=1&status=6` |
+| clientRef | string | No | Filter by your reference |
+| shipmentNo | string | No | Filter by shipment number |
+| query | string | No | Free-text search |
+
+**Sample Request:**
+
+```sh
+curl -X GET "https://api.example.com/v1/shipments?pageIndex=1&pageSize=10&status=1&status=6" \
+  -H "Authorization: Bearer {token}" \
+  -H "X-Cid: {companyId}"
+```
+
+**Sample Response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "c3d4e5f6-2222-3333-4444-555555555555",
+      "shipmentNo": "SH-20260401-001",
+      "clientRef": "SHIP-2026-001",
+      "status": 1,
+      "transportationMode": 1,
+      "service": 1,
+      "cargoReadyDate": "2026-04-01T00:00:00Z",
+      "expectedToWH": "2026-04-15T00:00:00Z",
+      "warehouseName": "US Main Warehouse",
+      "shipmentPackingType": 1,
+      "totalPallet": 5,
+      "totalCarton": null,
+      "totalLooseCarton": null,
+      "enableGoodsCounting": false,
+      "totalQuantity": 150,
+      "totalActualQuantity": null
+    }
+  ],
+  "currentPage": 1,
+  "pageCount": 1,
+  "pageSize": 10,
+  "rowCount": 1,
+  "timestamp": "2026-03-24T10:00:00Z"
+}
+```
+
+**Errors:** 401, 403, 429
+
+---
+
+#### GET /v1/shipments/{shipmentId}
+
+Get full details of a shipment.
+
+**Sample Request:**
+
+```sh
+curl -X GET "https://api.example.com/v1/shipments/c3d4e5f6-2222-3333-4444-555555555555" \
+  -H "Authorization: Bearer {token}" \
+  -H "X-Cid: {companyId}"
+```
+
+**Sample Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "c3d4e5f6-2222-3333-4444-555555555555",
+    "shipmentNo": "SH-20260401-001",
+    "clientRef": "SHIP-2026-001",
+    "status": 1,
+    "transportationMode": 1,
+    "service": 1,
+    "cargoReadyDate": "2026-04-01T00:00:00Z",
+    "expectedToWH": "2026-04-15T00:00:00Z",
+    "warehouseId": "b2c3d4e5-1111-2222-3333-444444444444",
+    "remark": "Handle with care",
+    "enableGoodsCounting": false,
+    "shipmentPackingType": 1,
+    "totalPallet": 5,
+    "totalCarton": null,
+    "totalLooseCarton": null,
+    "warehouse": {
+      "id": "b2c3d4e5-1111-2222-3333-444444444444",
+      "name": "US Main Warehouse"
+    },
+    "shipmentPackingSummaries": [
+      {
+        "productCode": "SKU-001",
+        "productName": "Wireless Mouse",
+        "quantity": 100,
+        "actualQuantity": null
+      }
+    ]
+  },
+  "timestamp": "2026-03-24T10:00:00Z"
+}
+```
+
+**Errors:** 401, 403, 404, 429
+
+---
+
+#### GET /v1/shipments/count-status
+
+Get shipment count grouped by status.
+
+**Query Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| warehouseId | UUID | No | Filter by warehouse |
+| productId | UUID | No | Filter by product |
+| fromDate | date | No | Date range start |
+| toDate | date | No | Date range end |
+
+**Sample Response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": 1, "count": 10 },
+    { "id": 6, "count": 5 },
+    { "id": 2, "count": 3 },
+    { "id": 8, "count": 2 }
+  ],
+  "timestamp": "2026-03-24T10:00:00Z"
+}
+```
+
+**Errors:** 401, 403, 429
+
+---
 
 #### Combined Create — POST /v1/shipments
 
@@ -818,9 +970,105 @@ Create a complete shipment in a single call (shipment info + packing lines + doc
 
 ---
 
+#### PUT /v1/shipments/{shipmentId}
+
+Update a shipment's information. Only allowed when status is **New**.
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| clientRef | string | Yes | Your reference code |
+| transportationMode | int | Yes | Transportation mode |
+| service | int | Yes | 1=USWarehousing, 2=Fullfillment, 3=FBA |
+| cargoReadyDate | datetime | Yes | Cargo ready date |
+| expectedToWH | datetime | Yes | Expected warehouse arrival |
+| warehouseId | UUID | No | Destination warehouse |
+| remark | string | No | Remark |
+| enableGoodsCounting | bool | No | Enable goods counting |
+| shipmentPackingType | int | No | 0=None, 1=AllPallet, 2=AllCarton, 3=Mix |
+| totalPallet | int | No | Total pallets |
+| totalCarton | int | No | Total cartons |
+| totalLooseCarton | int | No | Total loose cartons |
+
+**Sample Request:**
+
+```json
+{
+  "clientRef": "SHIP-2026-001-UPDATED",
+  "transportationMode": 1,
+  "service": 1,
+  "cargoReadyDate": "2026-04-05T00:00:00Z",
+  "expectedToWH": "2026-04-20T00:00:00Z",
+  "warehouseId": "b2c3d4e5-1111-2222-3333-444444444444",
+  "shipmentPackingType": 1,
+  "totalPallet": 6
+}
+```
+
+**Sample Response (200):** Returns updated shipment detail (same as GET by ID).
+
+**Errors:** 400 (not in editable status), 401, 403, 404, 422, 429
+
+---
+
+#### POST /v1/shipments/{shipmentId}/request
+
+Submit a shipment for review. Transitions **New → Review**.
+
+**Request Body:** None
+
+**Sample Request:**
+
+```sh
+curl -X POST "https://api.example.com/v1/shipments/c3d4e5f6-.../request" \
+  -H "Authorization: Bearer {token}" \
+  -H "X-Cid: {companyId}"
+```
+
+**Sample Response:** 202 Accepted (empty data).
+
+**Errors:** 400 (must be in New status), 401, 403, 404, 429
+
+---
+
+#### POST /v1/shipments/{shipmentId}/renew
+
+Renew a rejected or cancelled shipment back to **New** status.
+
+**Request Body:** None
+
+**Sample Response:** 202 Accepted (empty data).
+
+**Errors:** 400 (must be in Rejected or Canceled status), 401, 403, 404, 429
+
+---
+
+#### POST /v1/shipments/{shipmentId}/cancel
+
+Cancel a shipment.
+
+**Request Body:** None
+
+**Sample Response:** 202 Accepted (empty data).
+
+**Errors:** 400 (must be in Review or Confirmed status), 401, 403, 404, 429
+
+---
+
+#### DELETE /v1/shipments/{shipmentId}
+
+Soft-delete a shipment. Only allowed when status is **New**, **Canceled**, or **Rejected**.
+
+**Sample Response:** 204 No Content (no body).
+
+**Errors:** 400 (not in deletable status), 401, 403, 404, 429
+
+---
+
 ### 5.6 Orders
 
-Outbound orders — fulfill customer orders from warehouse stock. Detailed API documentation will be provided in a subsequent update.
+Outbound orders — fulfill customer orders from warehouse stock.
 
 **Enums:**
 
@@ -845,6 +1093,164 @@ Outbound orders — fulfill customer orders from warehouse stock. Detailed API d
 | POST | /v1/orders/request-batch | Batch submit |
 | POST | /v1/orders/{orderId}/cancel | Cancel |
 | DELETE | /v1/orders/{orderId} | Delete |
+
+---
+
+#### GET /v1/orders
+
+Get a paginated list of orders.
+
+**Query Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| pageIndex | int | No | Default: 1 |
+| pageSize | int | No | Default: 20, Max: 100 |
+| type | int | No | OrderType: 1=ECommerce, 3=FBA, 4=Wholesale |
+| warehouseId | UUID | No | Filter by warehouse |
+| productId | UUID | No | Filter by product in lines |
+| fromDate | date | No | Order date range start |
+| toDate | date | No | Order date range end |
+| status | int[] | No | Filter by status. Pass multiple: `?status=1&status=2` |
+| clientReference | string | No | Filter by your reference |
+| orderNo | string | No | Filter by order number |
+| shipmentVendor | int | No | 1=SelfPickup, 2=Warehouse, 3=ThirdParty |
+| query | string | No | Free-text search |
+
+**Sample Request:**
+
+```sh
+curl -X GET "https://api.example.com/v1/orders?pageIndex=1&pageSize=10&type=1&status=1" \
+  -H "Authorization: Bearer {token}" \
+  -H "X-Cid: {companyId}"
+```
+
+**Sample Response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "e6f7a8b9-5555-6666-7777-888888888888",
+      "orderNo": "ORD-20260401-001",
+      "orderType": 1,
+      "status": 1,
+      "clientReference": "ORD-2026-001",
+      "orderDate": "2026-04-01T00:00:00Z",
+      "dueDate": "2026-04-10T00:00:00Z",
+      "warehouseName": "US Main Warehouse",
+      "customerName": "John Doe",
+      "storeName": "My Shopify Store",
+      "trackingNo": null,
+      "shipmentVendor": 2
+    }
+  ],
+  "currentPage": 1,
+  "pageCount": 1,
+  "pageSize": 10,
+  "rowCount": 1,
+  "timestamp": "2026-03-24T10:00:00Z"
+}
+```
+
+**Errors:** 401, 403, 429
+
+---
+
+#### GET /v1/orders/{orderId}
+
+Get full details of an order.
+
+**Sample Request:**
+
+```sh
+curl -X GET "https://api.example.com/v1/orders/e6f7a8b9-5555-6666-7777-888888888888" \
+  -H "Authorization: Bearer {token}" \
+  -H "X-Cid: {companyId}"
+```
+
+**Sample Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e6f7a8b9-5555-6666-7777-888888888888",
+    "orderNo": "ORD-20260401-001",
+    "orderType": 1,
+    "status": 1,
+    "clientReference": "ORD-2026-001",
+    "orderDate": "2026-04-01T00:00:00Z",
+    "dueDate": "2026-04-10T00:00:00Z",
+    "remark": "Rush order",
+    "warehouseId": "b2c3d4e5-1111-2222-3333-444444444444",
+    "warehouseName": "US Main Warehouse",
+    "customerId": "d4e5f6a7-3333-4444-5555-666666666666",
+    "customerName": "John Doe",
+    "storeId": "e5f6a7b8-4444-5555-6666-777777777777",
+    "storeName": "My Shopify Store",
+    "shipmentVendor": 2,
+    "trackingNo": null,
+    "shippingAddress": {
+      "fullName": "John Doe",
+      "phoneNumber": "+1-555-0100",
+      "addressLine": "123 Main St, Apt 4B",
+      "postalCode": "90001",
+      "customerAddressType": 1
+    },
+    "orderLines": [
+      {
+        "id": "11111111-aaaa-bbbb-cccc-dddddddddddd",
+        "productId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "productCode": "SKU-001",
+        "productName": "Wireless Mouse",
+        "quantity": 10,
+        "sellingPrice": 25.00,
+        "expectedPrice": 15.00
+      }
+    ]
+  },
+  "timestamp": "2026-03-24T10:00:00Z"
+}
+```
+
+**Errors:** 401, 403, 404, 429
+
+---
+
+#### GET /v1/orders/count-status
+
+Get order count grouped by status.
+
+**Query Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| type | int | No | OrderType filter |
+| warehouseId | UUID | No | Filter by warehouse |
+| fromDate | date | No | Date range start |
+| toDate | date | No | Date range end |
+
+**Sample Response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": 1, "count": 12 },
+    { "id": 2, "count": 5 },
+    { "id": 4, "count": 8 },
+    { "id": 7, "count": 20 },
+    { "id": 255, "count": 3 }
+  ],
+  "timestamp": "2026-03-24T10:00:00Z"
+}
+```
+
+**Errors:** 401, 403, 429
+
+---
 
 #### Combined Create — POST /v1/orders
 
@@ -984,6 +1390,122 @@ Create a complete order in a single call (order info + lines + documents). The `
 ```
 
 **Errors:** 400, 401, 403, 409, 422, 429
+
+---
+
+#### PUT /v1/orders/{orderId}
+
+Update an order's information. Only allowed when status is **New**.
+
+**Request Body:** Same fields as POST /v1/orders (except `status` and `lines`/`documents` are not used here — use this endpoint only to change order header info).
+
+**Sample Request:**
+
+```json
+{
+  "orderType": 1,
+  "customerId": "d4e5f6a7-3333-4444-5555-666666666666",
+  "storeId": "e5f6a7b8-4444-5555-6666-777777777777",
+  "clientReference": "ORD-2026-001-UPDATED",
+  "shipmentVendor": 2,
+  "shippingAddress": {
+    "fullName": "John Doe",
+    "phoneNumber": "+1-555-0100",
+    "adminUnitId": 12345,
+    "addressLine": "456 Updated St",
+    "postalCode": "90002",
+    "customerAddressType": 1
+  }
+}
+```
+
+**Sample Response (200):** Empty success.
+
+**Errors:** 400 (not in editable status / invalid order type), 401, 403, 404, 422, 429
+
+---
+
+#### POST /v1/orders/{orderId}/request
+
+Submit an order for processing. Transitions **New → Requested**.
+
+**Request Body:** None
+
+**Sample Request:**
+
+```sh
+curl -X POST "https://api.example.com/v1/orders/e6f7a8b9-.../request" \
+  -H "Authorization: Bearer {token}" \
+  -H "X-Cid: {companyId}"
+```
+
+**Sample Response:** 202 Accepted (empty data).
+
+**Errors:** 400 (must be in New status), 401, 403, 404, 429
+
+---
+
+#### POST /v1/orders/request-batch
+
+Submit multiple orders for processing in batch.
+
+**Request Body:** Array of order IDs.
+
+```json
+[
+  "e6f7a8b9-5555-6666-7777-888888888888",
+  "f7a8b9c0-6666-7777-8888-999999999999"
+]
+```
+
+**Sample Response (202):** Returns results per order (success/failure for each).
+
+```json
+{
+  "success": true,
+  "data": [
+    { "orderId": "e6f7a8b9-...", "success": true },
+    { "orderId": "f7a8b9c0-...", "success": false, "error": "Order is not in New status" }
+  ],
+  "timestamp": "2026-03-24T10:00:00Z"
+}
+```
+
+**Errors:** 401, 403, 429
+
+---
+
+#### POST /v1/orders/{orderId}/cancel
+
+Cancel an order.
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| cancelReason | string | Yes | Reason for cancellation |
+
+**Sample Request:**
+
+```json
+{
+  "cancelReason": "Customer changed their mind"
+}
+```
+
+**Sample Response:** 202 Accepted (empty data).
+
+**Errors:** 400 (must be in Requested, Confirmed, Rejected, or WarehouseProcessing status), 401, 403, 404, 429
+
+---
+
+#### DELETE /v1/orders/{orderId}
+
+Soft-delete an order. Only allowed when status is **New** or **Canceled**.
+
+**Sample Response:** 204 No Content (no body).
+
+**Errors:** 400 (not in deletable status), 401, 403, 404, 429
 
 ---
 
