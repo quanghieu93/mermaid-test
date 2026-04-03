@@ -1833,7 +1833,7 @@ This is the typical end-to-end flow for a merchant using the Public API.
   │(Inbound)│    │(Outbound) │    │           │
   └────┬────┘    └─────┬─────┘    │           │
        │               │          │           │
-       │    Webhooks    │          │           │
+       │    Webhooks   │          │           │
        │  ◄─────────►  │          │           │
        │               │          │           │
        ▼               ▼          │           │
